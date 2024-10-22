@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo crawler</title>
+    <!-- Include jQuery CDN -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Include Bootstrap CDN for styling (optional) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Demo crawler</h2>
+        <form id="dynamic-form">
+            <!-- Existing input fields -->
+            <div class="mb-3">
+                <label for="url" class="form-label">Url</label>
+                <input type="text" class="form-control" id="url" placeholder="Enter url" required>
+            </div>
+            <div class="mb-3">
+                <label for="base_selector" class="form-label">Base selector</label>
+                <input type="text" class="form-control" id="base_selector" placeholder="Enter base selector" required>
+            </div>
+            <div class="d-flex align-items-center mb-3">
+                <label class="form-label me-2">Elements selector</label>
+                <button type="button" id="add-input" class="btn btn-primary">Add New Input and Select</button>
+            </div>
+            <div class="fields">
+                <div class="mb-3 d-flex align-items-center" id="input-1">
+                    <select class="form-select me-2" id="field-type-1" style="width: 200px;" required>
+                        <option value="">Select type</option>
+                        <option value="text">Text</option>
+                        <option value="image">Image</option>
+                        <option value="url">Url</option>
+                    </select>
+                    <input required style="width: 400px" type="text" class="form-control me-2" name="field_name" id="field-name-1" placeholder="Input field name">
+                    <input required type="text" class="form-control me-2" name="field_selector" id="field-selector-1" placeholder="Input field selector">
+                    
+                    <button type="button" class="btn btn-danger remove-input" data-id="input-1">Delete</button>
+                </div>
+            </div>
+        </form>
+
+        <button type="button" id="submit-form" class="btn btn-success">Submit Form</button>
+
+        <!-- Display result or error messages -->
+        <div id="result" class="mt-4"></div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            let inputCount = 1;
+
+            // Function to add new input and select field
+            $("#add-input").click(function() {
+                inputCount++;  // Increment input count
+
+                // Create new input with a select dropdown and delete button inline
+                let newInput = `
+                    <div class="mb-3 d-flex align-items-center" id="input-${inputCount}">
+                        <select required class="form-select me-2" id="field-type-${inputCount}" style="width: 200px;">
+                            <option value="">Select type</option>
+                            <option value="text">Text</option>
+                            <option value="image">Image</option>
+                            <option value="url">Url</option>
+                        </select>
+                        <input required style="width: 400px" type="text" class="form-control me-2" name="field_name" id="field-name-${inputCount}" placeholder="Input field name">
+                        <input type="text" class="form-control me-2" name="field_selector" id="field-selector-${inputCount}" placeholder="Input field selector">
+                        
+                        <button required type="button" class="btn btn-danger remove-input" data-id="input-${inputCount}">Delete</button>
+                    </div>
+                `;
+
+                // Append the new input and select to the form
+                $("#dynamic-form .fields").append(newInput);
+            });
+
+            // Event delegation to handle removal of input fields
+            $(document).on('click', '.remove-input', function() {
+                let inputId = $(this).data('id');
+                $(`#${inputId}`).remove();  // Remove the specific input field with select
+            });
+
+            // Handle form submission with validation
+            $("#submit-form").click(function() {
+                let fieldData = [];
+                let valid = true;
+                let errorMessage = 'All input fields and selects must be filled out!';
+
+                let url = $('#url').val();
+                let base_selector = $('#base_selector').val();
+
+                
+                if (!url) {
+                    valid = false;
+                    $('#url').addClass('is-invalid');
+                } else {
+                    $('#url').removeClass('is-invalid');
+                }
+
+                if (!base_selector) {
+                    valid = false;
+                    $('#base_selector').addClass('is-invalid');
+                } else {
+                    $('#base_selector').removeClass('is-invalid');
+                }
+
+                // Get values of all input fields and select elements
+                $('#dynamic-form .fields div').each(function() {
+                    let inputField = $(this).find('input[name="field_name"]').val();  // Get input value
+                    let inputSelector = $(this).find('input[name="field_selector"]').val();
+                    let selectField = $(this).find('select').val(); // Get select value
+
+                    // Check if input or select is empty
+                    if (!inputField || !selectField || !inputSelector) {
+                        valid = false;
+                        $(this).find('input, select').addClass('is-invalid'); // Highlight invalid fields
+                    } else {
+                        fieldData.push({
+                            name: inputField,
+                            type: selectField,
+                            selector: inputSelector,
+                        });
+                        $(this).find('input, select').removeClass('is-invalid'); // Remove invalid highlight for valid fields
+                    }
+                });
+
+                // Display result or error message
+                if (valid) {
+                    let formData = {
+                        'url': url,
+                        'base_selector': base_selector,
+                        'fields': fieldData
+                    }
+                    $.ajax({
+                        url: '/submit_form',  // Replace with your server URL
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(formData),  // Send the form data as JSON
+                        success: function(response) {
+                            console.log(response);
+                            $('#result').html('<h4>Form Submitted Successfully!</h4>').removeClass('text-danger').addClass('text-success');
+                        },
+                        error: function(xhr, status, error) {
+                            $('#result').html('<h4>Error submitting form</h4>').removeClass('text-success').addClass('text-danger');
+                        }
+                    });
+                } else {
+                    $('#result').html(errorMessage).removeClass('text-success').addClass('text-danger');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

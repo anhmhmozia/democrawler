@@ -44,6 +44,14 @@
 
         <button type="button" id="submit-form" class="btn btn-success">Submit Form</button>
 
+        <!-- Loader (hidden by default) -->
+        <div id="loader" class="mt-3" style="display:none;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <span>Processing...</span>
+        </div>
+
         <!-- Display result or error messages -->
         <div id="result" class="mt-4"></div>
     </div>
@@ -84,6 +92,7 @@
 
             // Handle form submission with validation
             $("#submit-form").click(function() {
+                $("#submit-form").prop("disabled", true);
                 let fieldData = [];
                 let valid = true;
                 let errorMessage = 'All input fields and selects must be filled out!';
@@ -128,6 +137,7 @@
 
                 // Display result or error message
                 if (valid) {
+                    $("#loader").show();
                     let formData = {
                         'url': url,
                         'base_selector': base_selector,
@@ -140,14 +150,20 @@
                         data: JSON.stringify(formData),  // Send the form data as JSON
                         success: function(response) {
                             console.log(response);
-                            $('#result').html('<h4>Form Submitted Successfully!</h4>').removeClass('text-danger').addClass('text-success');
+                            $('#result').html(response['message'][0]['name']).removeClass('text-danger').addClass('text-success');
                         },
                         error: function(xhr, status, error) {
                             $('#result').html('<h4>Error submitting form</h4>').removeClass('text-success').addClass('text-danger');
+                        },
+                        complete: function() {
+                            // Hide the loader when request completes
+                            $("#loader").hide();
+                            $("#submit-form").prop("disabled", false);
                         }
                     });
                 } else {
                     $('#result').html(errorMessage).removeClass('text-success').addClass('text-danger');
+                    $("#submit-form").prop("disabled", false);
                 }
             });
         });

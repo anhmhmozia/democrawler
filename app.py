@@ -19,39 +19,39 @@ async def submit_form():
     crawlerUrl = data['url']
     base_selector = data['base_selector']
     fields = data['fields']
+    headerData = {}
     schema = {
         "name": "Demo crawler",
         "baseSelector": base_selector,
         "fields": []
     }
     for field in fields:
-        if (field['type'] == 'text'):
-            schema['fields'].append(field)
-        elif (field['type'] == 'image'):
-            schema['fields'].append({
-                'name': field['name'],
-                'selector': field['selector'],
-                'type': 'attribute',
-                'attribute': 'src',
-            })
+        headerData[field['name']] = field
+        if (field['selector'] == ''):
+            del field['selector']
+        if (field['f_type'] == 'image'):
+            field['type'] = 'attribute';
+            field['attribute'] = 'src';
+        elif (field['f_type'] == 'url'):
+            field['type'] = 'attribute';
+            field['attribute'] = 'href';
         else:
-            schema['fields'].append({
-                'name': field['name'],
-                'selector': field['selector'],
-                'type': 'attribute',
-                'attribute': 'href',
-            })
-        extraction_strategy = JsonCssExtractionStrategy(schema, verbose=True)
-        async with AsyncWebCrawler(verbose=True) as crawler:
-            result = await crawler.arun(
-                url=crawlerUrl,
-                extraction_strategy=extraction_strategy,
-                bypass_cache=True
-            )
+            field['type'] = 'text';
+            if ('attribute' in field):
+                del field['attribute']
+        schema['fields'].append(field)
+    print(schema['fields'])
+    extraction_strategy = JsonCssExtractionStrategy(schema, verbose=True)
+    async with AsyncWebCrawler(verbose=True) as crawler:
+        result = await crawler.arun(
+            url=crawlerUrl,
+            extraction_strategy=extraction_strategy,
+            bypass_cache=True
+        )
 
-            assert result.success, "Failed to crawl the page"
-            crawlerData = json.loads(result.extracted_content)
-    return jsonify({"message": crawlerData}), 200
+        assert result.success, "Failed to crawl the page"
+        crawlerData = json.loads(result.extracted_content)
+    return jsonify({"data": crawlerData, "header": headerData, "params": data}), 200
     
 if __name__ == '__main__':
     app.run(debug=True)

@@ -24,7 +24,7 @@
             </div>
             <div class="d-flex align-items-center mb-3">
                 <label class="form-label me-2">Elements selector</label>
-                <button type="button" id="add-input" class="btn btn-primary">Add New Input and Select</button>
+                <button type="button" id="add-input" class="btn btn-primary">Add New Element</button>
             </div>
             <div class="fields">
                 <div class="mb-3 d-flex align-items-center" id="input-1">
@@ -122,13 +122,18 @@
                     let selectField = $(this).find('select').val(); // Get select value
 
                     // Check if input or select is empty
-                    if (!inputField || !selectField || !inputSelector) {
+                    if (!inputField || !selectField) {
                         valid = false;
-                        $(this).find('input, select').addClass('is-invalid'); // Highlight invalid fields
+                        if (!inputField) {
+                            $(this).find('input[name="field_name"]').addClass('is-invalid');
+                        }
+                        if (!selectField) {
+                            $(this).find('select').addClass('is-invalid');
+                        }
                     } else {
                         fieldData.push({
                             name: inputField,
-                            type: selectField,
+                            f_type: selectField,
                             selector: inputSelector,
                         });
                         $(this).find('input, select').removeClass('is-invalid'); // Remove invalid highlight for valid fields
@@ -149,8 +154,33 @@
                         contentType: 'application/json',
                         data: JSON.stringify(formData),  // Send the form data as JSON
                         success: function(response) {
+                            let html = '<table class="table table-bordered table-striped">';
+                            html += '<thead><tr>';
+                            const header = response.header;
+                            const data = response.data;
+                            for (const [key, value] of Object.entries(header)) {
+                              html += `<th>${key}</th>`;
+                            }
+                            html += '</tr></thead>';
+                            html += '<tbody>';
+                            for (let i = 0; i < data.length; i++) {
+                                html += '<tr>';
+                                for (const [key, value] of Object.entries(data[i])) {
+                                    const type = header[key]['f_type'];
+                                    let val = value;
+                                    if (type == 'url'){
+                                        val = `<a href="${value}" target="_blank">${value}</a>`;
+                                    } else if (type == 'image'){
+                                        val = `<img src="${value}" style="width: 200px;" />`;
+                                    }
+                                    html += `<td>${val}</td>`;
+                                }
+                                html += '</tr>';
+                            }
+                            html += '</tbody>';
+                            html += '</table>';
                             console.log(response);
-                            $('#result').html(response['message'][0]['name']).removeClass('text-danger').addClass('text-success');
+                            $('#result').html(html).removeClass('text-danger').addClass('text-success');
                         },
                         error: function(xhr, status, error) {
                             $('#result').html('<h4>Error submitting form</h4>').removeClass('text-success').addClass('text-danger');
